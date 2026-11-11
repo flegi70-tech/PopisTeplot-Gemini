@@ -133,16 +133,11 @@
   <!-- HLAVNÍ OBSAH / DASHBOARD MĚSÍCE -->
   <main class="flex-1 max-w-5xl w-full mx-auto p-4 space-y-6">
     <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
-        <div>
-          <h2 id="dashboardMonthTitle" class="text-base font-bold text-white">Přehled dnů – Měsíc</h2>
-          <p class="text-xs text-slate-400">Kliknutím na den otevřete formulář zápisu. Zmeškané dny jsou zvýrazněny.</p>
-        </div>
-        <div class="flex items-center gap-3 text-xs">
-          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Zapsáno</span>
-          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> S nápravou</span>
-          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Chybí záznam</span>
-        </div>
+      <!-- Legenda se 3 barevnými tečkami (bez velkého nadpisu a textu) -->
+      <div class="flex items-center justify-end gap-3 text-xs border-b border-slate-800 pb-3 mb-4">
+        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Zapsáno</span>
+        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> S nápravou</span>
+        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Chybí záznam</span>
       </div>
       
       <!-- Seznam dnů -->
@@ -348,7 +343,6 @@
       container.innerHTML = '';
 
       const totalDays = getDaysInMonth(state.currentYear, state.currentMonth);
-      document.getElementById('dashboardMonthTitle').innerText = `Přehled dnů – ${getMonthName(state.currentMonth).toUpperCase()} ${state.currentYear}`;
 
       const now = new Date();
       const todayKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
@@ -361,8 +355,8 @@
         const isFuture = new Date(state.currentYear, state.currentMonth, d) > new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
         let statusClass = "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-600";
-        let statusBadge = `<span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded">Nezapsáno</span>`;
-        let statusText = "Kliknutím zapište";
+        let statusBadge = `<span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded">Klikni pro úpravu</span>`;
+        let statusText = "Klikni pro úpravu";
 
         if (dayData && dayData.foods && dayData.foods.length > 0) {
           const hasFix = dayData.foods.some(f => f.fix && f.fix.trim() !== '');
@@ -371,11 +365,16 @@
             statusBadge = `<span class="text-xs bg-amber-900/50 text-amber-300 border border-amber-700 px-2 py-0.5 rounded font-medium">Zapsáno s nápravou</span>`;
           } else {
             statusClass = "bg-emerald-950/20 border-emerald-800/60 text-emerald-200 hover:border-emerald-700";
-            statusBadge = `<span class="text-xs bg-emerald-900/50 text-emerald-300 border border-emerald-700 px-2 py-0.5 rounded font-medium">Dnes jsou teploty zapsané</span>`;
+            statusBadge = `<span class="text-xs bg-emerald-900/50 text-emerald-300 border border-emerald-700 px-2 py-0.5 rounded font-medium">Zapsáno</span>`;
           }
           statusText = `${dayData.foods.length} pol. | ${dayData.staff || 'Nezadáno'}`;
+        } else if (isToday) {
+          // Nevyplněný DNEŠNÍ den označen žlutě/amber
+          statusClass = "bg-amber-950/40 border-amber-500/80 text-amber-200 hover:border-amber-400 ring-2 ring-amber-500/40";
+          statusBadge = `<span class="text-xs bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded">Dnes – nezapsáno</span>`;
+          statusText = "Klikni pro úpravu";
         } else if (isPast) {
-          statusClass = "bg-rose-950/30 border-rose-800/80 text-rose-200 hover:border-rose-600 animate-pulse";
+          statusClass = "bg-rose-950/30 border-rose-800/80 text-rose-200 hover:border-rose-600";
           statusBadge = `<span class="text-xs bg-rose-900/80 text-white px-2 py-0.5 rounded font-bold">Chybí zápis!</span>`;
           statusText = "Zmeškaný den";
         }
@@ -387,356 +386,19 @@
         }
 
         const rowDiv = document.createElement('div');
-        rowDiv.className = `flex items-center justify-between p-3 rounded-lg border transition cursor-pointer ${statusClass} ${isToday ? 'ring-2 ring-emerald-500' : ''}`;
+        rowDiv.className = `flex items-center justify-between p-3 rounded-lg border transition cursor-pointer ${statusClass}`;
         rowDiv.onclick = () => openDayModal(dayKey);
 
         rowDiv.innerHTML = `
-          <div class="flex items-center gap-3">
-            <div class="w-10 text-center font-bold text-sm ${isToday ? 'text-emerald-400' : ''}">${d}.</div>
-            <div>
-              <div class="text-xs font-semibold text-white">${d}. ${getMonthNameGenitive(state.currentMonth)} ${state.currentYear} ${isToday ? '(Dnes)' : ''}</div>
-              <div class="text-[11px] text-slate-400">${statusText}</div>
-            </div>
+          <div class="flex items-center gap-4">
+            <div class="w-8 font-bold text-base text-white text-right">${d}.</div>
+            <div class="text-xs text-slate-400 font-medium">${statusText}</div>
           </div>
           <div>${statusBadge}</div>
         `;
 
         container.appendChild(rowDiv);
       }
-    }
-
-    // 2. TISKOVÁ VERZE (2 TÝDNY NA 1 STRÁNKU A4, 4 STRÁNKY CELKEM PRO MĚSÍC)
-    function renderPrintWeeks() {
-      const container = document.getElementById('printWeeksContainer');
-      container.innerHTML = '';
-
-      const totalDays = getDaysInMonth(state.currentYear, state.currentMonth);
-      const monthName = getMonthName(state.currentMonth);
-
-      // Rozdělení měsíce na 2 bloky po cca 2 týdnech (1-15 a 16-konec), aby se každý vešel na 1 stranu A4
-      const periods = [
-        { start: 1, end: 15, label: '1. polovina měsíce' },
-        { start: 16, end: totalDays, label: '2. polovina měsíce' }
-      ];
-
-      periods.forEach((period, pIdx) => {
-        const pageDiv = document.createElement('div');
-        pageDiv.className = "print-page bg-white text-black p-2 rounded-xl mb-6";
-
-        let html = `
-          <div class="print-header">
-            <div class="flex justify-between items-center font-bold">
-              <span>Zápis teplot při výdeji jídel – ${state.facilityName}</span>
-              <span>Měsíc: ${monthName} ${state.currentYear} (${period.label})</span>
-            </div>
-          </div>
-          <table class="w-full text-left">
-            <thead>
-              <tr>
-                <th class="w-10 text-center">Datum</th>
-                <th>Jídlo</th>
-                <th class="w-12 text-center">Čas</th>
-                <th class="w-10 text-center">°C</th>
-                <th class="w-12 text-center">Čas 2</th>
-                <th class="w-10 text-center">°C</th>
-                <th>Náprava</th>
-                <th class="w-24">Jméno</th>
-              </tr>
-            </thead>
-            <tbody>
-        `;
-
-        for (let d = period.start; d <= period.end; d++) {
-          const dayKey = `${state.currentYear}-${state.currentMonth}-${d}`;
-          const dayData = state.data[dayKey] || { staff: '', foods: [] };
-          const foods = dayData.foods || [];
-          const rowSpan = Math.max(foods.length, 1);
-
-          for (let f = 0; f < rowSpan; f++) {
-            const food = foods[f] || null;
-            const isFirstFood = f === 0;
-
-            html += `<tr>`;
-
-            if (isFirstFood) {
-              html += `
-                <td rowspan="${rowSpan}" class="text-center font-bold align-top bg-slate-50">
-                  ${d}.${state.currentMonth + 1}.
-                </td>
-              `;
-            }
-
-            if (food) {
-              html += `
-                <td class="font-medium">${escapeHtml(food.name || '')}</td>
-                <td class="text-center">${food.time1 || ''}</td>
-                <td class="text-center font-bold">${food.temp1 ? food.temp1 + '°C' : ''}</td>
-                <td class="text-center">${food.time2 || ''}</td>
-                <td class="text-center font-bold">${food.temp2 ? food.temp2 + '°C' : ''}</td>
-                <td>${escapeHtml(food.fix || '')}</td>
-              `;
-            } else {
-              html += `
-                <td class="text-slate-400 italic" colspan="5">Bez záznamu</td>
-                <td></td>
-              `;
-            }
-
-            if (isFirstFood) {
-              html += `
-                <td rowspan="${rowSpan}" class="align-top text-[7.5pt]">
-                  ${escapeHtml(dayData.staff || '')}
-                </td>
-              `;
-            }
-
-            html += `</tr>`;
-          }
-        }
-
-        html += `
-            </tbody>
-          </table>
-        `;
-
-        pageDiv.innerHTML = html;
-        container.appendChild(pageDiv);
-      });
-    }
-
-    // MODAL ZÁPISU DNE
-    function openDayModal(dayKey) {
-      activeModalDayKey = dayKey;
-      const parts = dayKey.split('-');
-      const year = parts[0];
-      const month = parseInt(parts[1]);
-      const day = parts[2];
-
-      document.getElementById('modalTitle').innerText = `Zápis pro ${day}. ${getMonthName(month)} ${year}`;
-
-      const staffSelect = document.getElementById('modalStaffSelect');
-      staffSelect.innerHTML = '<option value="">-- Vyberte jméno --</option>';
-      state.staff.forEach(name => {
-        staffSelect.innerHTML += `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
-      });
-
-      const dayData = state.data[dayKey] || { staff: '', foods: [] };
-      staffSelect.value = dayData.staff || '';
-
-      const foodsList = document.getElementById('modalFoodsList');
-      foodsList.innerHTML = '';
-
-      let foodsToRender = dayData.foods ? [...dayData.foods] : [];
-      if (foodsToRender.length === 0) {
-        foodsToRender.push(createEmptyFoodObject());
-      }
-
-      foodsToRender.forEach((food, index) => {
-        addModalFoodRowUI(food, index + 1);
-      });
-
-      document.getElementById('dayModal').classList.remove('hidden');
-    }
-
-    function createEmptyFoodObject() {
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const mins = String(now.getMinutes()).padStart(2, '0');
-      const currentTime = `${hours}:${mins}`;
-
-      return {
-        name: '',
-        time1: currentTime,
-        temp1: 70,
-        time2: currentTime,
-        temp2: 70,
-        fix: ''
-      };
-    }
-
-    function addModalFoodRow() {
-      const foodsList = document.getElementById('modalFoodsList');
-      const newIndex = foodsList.children.length + 1;
-      addModalFoodRowUI(createEmptyFoodObject(), newIndex);
-    }
-
-    function addModalFoodRowUI(food, rowNumber) {
-      const foodsList = document.getElementById('modalFoodsList');
-      const rowId = 'foodRow_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-
-      const rowDiv = document.createElement('div');
-      rowDiv.className = "bg-slate-950 border border-slate-800 rounded-lg p-4 space-y-3 relative modal-food-row";
-      rowDiv.id = rowId;
-
-      rowDiv.innerHTML = `
-        <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
-          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">JÍDLO ${rowNumber}</span>
-          <button onclick="removeFoodRow('${rowId}')" class="text-xs text-rose-400 hover:text-rose-300 bg-rose-950/30 px-2 py-0.5 rounded border border-rose-800/50">Odebrat řádek</button>
-        </div>
-
-        <div class="relative">
-          <input type="text" value="${escapeHtml(food.name || '')}" placeholder="Název jídla (začněte psát...)" 
-            oninput="handleCatalogAutocomplete(this)" autocomplete="off"
-            class="food-name-input w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
-          <div class="autocomplete-dropdown hidden absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-30 max-h-40 overflow-y-auto divide-y divide-slate-800"></div>
-        </div>
-
-        <!-- Čas 1 a Teplota 1 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/50">
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-400 w-12 font-medium">Čas 1</span>
-            <input type="time" value="${food.time1 || ''}" class="food-time1-input bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-center text-white w-28 focus:outline-none focus:border-emerald-500 cursor-pointer">
-            <button onclick="setCurrentTime(this, 'food-time1-input')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded border border-slate-700 font-medium transition">Teď</button>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="range" min="55" max="90" value="${food.temp1 || 70}" oninput="updateTempDisplay(this, 'temp1-val')" class="food-temp1-range flex-1">
-            <div class="flex items-center gap-1 w-20 justify-end">
-              <button onclick="adjustTemp(this, 'food-temp1-range', -1)" class="w-5 h-5 bg-slate-800 text-slate-300 rounded flex items-center justify-center text-xs">-</button>
-              <span class="temp1-val text-sm font-bold w-10 text-center ${food.temp1 < 63 ? 'text-rose-400' : 'text-emerald-400'}">${food.temp1 || 70}°C</span>
-              <button onclick="adjustTemp(this, 'food-temp1-range', 1)" class="w-5 h-5 bg-slate-800 text-slate-300 rounded flex items-center justify-center text-xs">+</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Čas 2 a Teplota 2 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/50">
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-400 w-12 font-medium">Čas 2</span>
-            <input type="time" value="${food.time2 || ''}" class="food-time2-input bg-slate-950 border border-slate-700 rounded px-2 py-1 text-sm text-center text-white w-28 focus:outline-none focus:border-emerald-500 cursor-pointer">
-            <button onclick="setCurrentTime(this, 'food-time2-input')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1.5 rounded border border-slate-700 font-medium transition">Teď</button>
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="range" min="55" max="90" value="${food.temp2 || 70}" oninput="updateTempDisplay(this, 'temp2-val')" class="food-temp2-range flex-1">
-            <div class="flex items-center gap-1 w-20 justify-end">
-              <button onclick="adjustTemp(this, 'food-temp2-range', -1)" class="w-5 h-5 bg-slate-800 text-slate-300 rounded flex items-center justify-center text-xs">-</button>
-              <span class="temp2-val text-sm font-bold w-10 text-center ${food.temp2 < 63 ? 'text-rose-400' : 'text-emerald-400'}">${food.temp2 || 70}°C</span>
-              <button onclick="adjustTemp(this, 'food-temp2-range', 1)" class="w-5 h-5 bg-slate-800 text-slate-300 rounded flex items-center justify-center text-xs">+</button>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="flex items-center justify-between mb-1">
-            <label class="text-xs text-slate-400">Náprava <span class="text-slate-500">(automaticky nebo ručně při poklesu pod 63 °C)</span></label>
-            <div class="flex gap-1">
-              <button onclick="setFixText(this, 'Přihřáto na >63 °C')" class="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700">Přihřáto</button>
-              <button onclick="setFixText(this, '')" class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">Smazat</button>
-            </div>
-          </div>
-          <input type="text" value="${escapeHtml(food.fix || '')}" placeholder="Popis zásahu..." 
-            class="food-fix-input w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-emerald-500">
-        </div>
-      `;
-
-      foodsList.appendChild(rowDiv);
-    }
-
-    function removeFoodRow(rowId) {
-      const row = document.getElementById(rowId);
-      if (row) row.remove();
-    }
-
-    function updateTempDisplay(rangeInput, targetClass) {
-      const val = parseInt(rangeInput.value);
-      const row = rangeInput.closest('.modal-food-row');
-      const display = row.querySelector('.' + targetClass);
-      display.innerText = val + '°C';
-      if (val < 63) {
-        display.className = `${targetClass} text-sm font-bold w-10 text-center text-rose-400`;
-      } else {
-        display.className = `${targetClass} text-sm font-bold w-10 text-center text-emerald-400`;
-      }
-    }
-
-    function adjustTemp(btn, rangeClass, delta) {
-      const row = btn.closest('.modal-food-row');
-      const range = row.querySelector('.' + rangeClass);
-      let newVal = parseInt(range.value) + delta;
-      if (newVal < 55) newVal = 55;
-      if (newVal > 90) newVal = 90;
-      range.value = newVal;
-      const targetClass = rangeClass.includes('temp1') ? 'temp1-val' : 'temp2-val';
-      updateTempDisplay(range, targetClass);
-    }
-
-    function setCurrentTime(btn, inputClass) {
-      const row = btn.closest('.modal-food-row');
-      const input = row.querySelector('.' + inputClass);
-      const now = new Date();
-      const hours = String(now.getHours()).padStart(2, '0');
-      const mins = String(now.getMinutes()).padStart(2, '0');
-      input.value = `${hours}:${mins}`;
-    }
-
-    function setFixText(btn, text) {
-      const row = btn.closest('.modal-food-row');
-      const input = row.querySelector('.food-fix-input');
-      input.value = text;
-    }
-
-    function handleCatalogAutocomplete(input) {
-      const val = input.value.trim().toLowerCase();
-      const dropdown = input.nextElementSibling;
-
-      if (!val) {
-        dropdown.classList.add('hidden');
-        return;
-      }
-
-      const matches = state.catalog.filter(item => item.toLowerCase().includes(val));
-
-      if (matches.length === 0) {
-        dropdown.classList.add('hidden');
-        return;
-      }
-
-      dropdown.innerHTML = '';
-      matches.forEach(match => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'p-2 text-sm text-slate-200 hover:bg-emerald-600 hover:text-white cursor-pointer transition';
-        itemDiv.innerText = match;
-        itemDiv.onclick = () => {
-          input.value = match;
-          dropdown.classList.add('hidden');
-        };
-        dropdown.appendChild(itemDiv);
-      });
-
-      dropdown.classList.remove('hidden');
-    }
-
-    document.addEventListener('click', (e) => {
-      if (!e.target.classList.contains('food-name-input')) {
-        document.querySelectorAll('.autocomplete-dropdown').forEach(el => el.classList.add('hidden'));
-      }
-    });
-
-    function copyYesterdayFoods() {
-      if (!activeModalDayKey) return;
-
-      const parts = activeModalDayKey.split('-');
-      const currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
-      currentDate.setDate(currentDate.getDate() - 1);
-
-      const prevDayKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDate()}`;
-      const prevData = state.data[prevDayKey];
-
-      if (!prevData || !prevData.foods || prevData.foods.length === 0) {
-        alert("Ze včerejšího dne nebyly nalezeny žádné záznamy.");
-        return;
-      }
-
-      const foodsList = document.getElementById('modalFoodsList');
-      foodsList.innerHTML = '';
-
-      prevData.foods.forEach((food, idx) => {
-        const copiedFood = {
-          ...food,
-          time1: food.time1,
-          time2: food.time2
-        };
-        addModalFoodRowUI(copiedFood, idx + 1);
-      });
     }
 
     // 2. TISKOVÁ VERZE (2 TÝDNY NA 1 STRÁNKU A4, S DECENTNÍM ODDĚLOVAČEM PO TÝDNU)
