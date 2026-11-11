@@ -597,6 +597,246 @@
       document.getElementById('validationModal').classList.add('hidden');
     }
 
+    // OTEVŘENÍ MODALU PRO DANOÝ DEN A JEHO OBSLUHA
+    function openDayModal(dayKey) {
+      activeModalDayKey = dayKey;
+      const parts = dayKey.split('-');
+      const year = parts[0];
+      const month = parseInt(parts[1]);
+      const day = parts[2];
+
+      document.getElementById('modalTitle').innerText = `${day}. ${getMonthNameGenitive(month)} ${year}`;
+
+      // Naplnění obsluhy
+      const staffSelect = document.getElementById('modalStaffSelect');
+      staffSelect.innerHTML = '<option value="">-- Vyberte jméno --</option>';
+      state.staff.forEach(name => {
+        staffSelect.innerHTML += `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+      });
+
+      const dayData = state.data[dayKey] || { staff: '', foods: [] };
+      staffSelect.value = dayData.staff || '';
+
+      const foodsList = document.getElementById('modalFoodsList');
+      foodsList.innerHTML = '';
+
+      let foodsToRender = dayData.foods ? [...dayData.foods] : [];
+      if (foodsToRender.length === 0) {
+        foodsToRender.push(createEmptyFoodObject());
+      }
+
+      foodsToRender.forEach((food, index) => {
+        addModalFoodRowUI(food, index + 1);
+      });
+
+      document.getElementById('dayModal').classList.remove('hidden');
+    }
+
+    function createEmptyFoodObject() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const mins = String(now.getMinutes()).padStart(2, '0');
+      const currentTime = `${hours}:${mins}`;
+
+      return {
+        name: '',
+        time1: currentTime,
+        temp1: 70,
+        time2: currentTime,
+        temp2: 70,
+        fix: ''
+      };
+    }
+
+    function addModalFoodRow() {
+      const foodsList = document.getElementById('modalFoodsList');
+      const newIndex = foodsList.children.length + 1;
+      addModalFoodRowUI(createEmptyFoodObject(), newIndex);
+    }
+
+    function addModalFoodRowUI(food, rowNumber) {
+      const foodsList = document.getElementById('modalFoodsList');
+      const rowId = 'foodRow_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+
+      const rowDiv = document.createElement('div');
+      rowDiv.className = "bg-slate-950 border border-slate-800 rounded-lg p-3 space-y-3 relative modal-food-row";
+      rowDiv.id = rowId;
+
+      rowDiv.innerHTML = `
+        <div class="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">JÍDLO ${rowNumber}</span>
+          <button onclick="removeFoodRow('${rowId}')" class="text-xs text-rose-400 hover:text-rose-300 bg-rose-950/30 hover:bg-rose-900/50 px-2 py-0.5 rounded border border-rose-800/50">
+            Odebrat řádek
+          </button>
+        </div>
+
+        <div class="relative">
+          <input type="text" value="${escapeHtml(food.name || '')}" placeholder="Název jídla (začněte psát...)" 
+            oninput="handleCatalogAutocomplete(this)" autocomplete="off"
+            class="food-name-input w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+          <div class="autocomplete-dropdown hidden absolute left-0 right-0 top-full mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-30 max-h-40 overflow-y-auto divide-y divide-slate-800"></div>
+        </div>
+
+        <!-- Čas 1 a Teplota 1 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-900/60 p-2 rounded-lg border border-slate-800/50">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400 w-10 font-medium">Čas 1</span>
+            <input type="time" value="${food.time1 || '11:00'}" class="food-time1-input bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-center text-white w-24 focus:outline-none focus:border-emerald-500">
+            <button onclick="setCurrentTime(this, 'food-time1-input')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-700">Teď</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" min="60" max="90" value="${food.temp1 || 70}" oninput="updateTempDisplay(this, 'temp1-val')" class="food-temp1-range flex-1">
+            <div class="flex items-center gap-1 w-20 justify-end">
+              <button onclick="adjustTemp(this, 'food-temp1-range', -1)" class="w-5 h-5 bg-slate-800 text-slate-300 rounded flex items-center justify-center text-xs hover:bg-slate-700">-</button>
+              <span class="temp1-val text-xs font-bold w-9 text-center ${food.temp1 < 63 ? 'text-rose-400' : 'text-emerald-400'}">${food.temp1 || 70}°C</span>
+              <button onclick="adjustTemp(this, 'food-temp1-range', 1)" class="w-5 h-5 bg-slate-800 text-slate-300 rounded flex items-center justify-center text-xs hover:bg-slate-700">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Čas 2 a Teplota 2 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-900/60 p-2 rounded-lg border border-slate-800/50">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400 w-10 font-medium">Čas 2</span>
+            <input type="time" value="${food.time2 || '12:00'}" class="food-time2-input bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-center text-white w-24 focus:outline-none focus:border-emerald-500">
+            <button onclick="setCurrentTime(this, 'food-time2-input')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded border border-slate-700">Teď</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="range" min="60" max="90" value="${food.temp2 || 70}" oninput="updateTempDisplay(this, 'temp2-val')" class="food-temp2-range flex-1">
+            <div class="flex items-center gap-1 w-20 justify-end">
+              <button onclick="adjustTemp(this, 'food-temp2-range', -1)" class="w-5 h-5 bg-slate-800 text-slate-300 rounded flex items-center justify-center text-xs hover:bg-slate-700">-</button>
+              <span class="temp2-val text-xs font-bold w-9 text-center ${food.temp2 < 63 ? 'text-rose-400' : 'text-emerald-400'}">${food.temp2 || 70}°C</span>
+              <button onclick="adjustTemp(this, 'food-temp2-range', 1)" class="w-5 h-5 bg-slate-800 text-slate-300 rounded flex items-center justify-center text-xs hover:bg-slate-700">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Náprava -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-[11px] text-slate-400">Náprava <span class="text-slate-500">(při poklesu pod 63 °C)</span></label>
+            <div class="flex gap-1">
+              <button onclick="setFixText(this, 'Přihřáto na >63°C')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700">Přihřáto</button>
+              <button onclick="setFixText(this, 'Přeměřeno')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded border border-slate-700">Přeměřeno</button>
+              <button onclick="setFixText(this, '')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">Smazat</button>
+            </div>
+          </div>
+          <input type="text" value="${escapeHtml(food.fix || '')}" placeholder="Popis zásahu..." 
+            class="food-fix-input w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+        </div>
+      `;
+
+      foodsList.appendChild(rowDiv);
+    }
+
+    function removeFoodRow(rowId) {
+      const row = document.getElementById(rowId);
+      if (row) row.remove();
+    }
+
+    function updateTempDisplay(rangeInput, targetClass) {
+      const val = parseInt(rangeInput.value);
+      const row = rangeInput.closest('.modal-food-row');
+      const display = row.querySelector('.' + targetClass);
+      display.innerText = val + '°C';
+      if (val < 63) {
+        display.className = `${targetClass} text-xs font-bold w-9 text-center text-rose-400`;
+      } else {
+        display.className = `${targetClass} text-xs font-bold w-9 text-center text-emerald-400`;
+      }
+    }
+
+    function adjustTemp(btn, rangeClass, delta) {
+      const row = btn.closest('.modal-food-row');
+      const range = row.querySelector('.' + rangeClass);
+      let newVal = parseInt(range.value) + delta;
+      if (newVal < 60) newVal = 60;
+      if (newVal > 90) newVal = 90;
+      range.value = newVal;
+      const targetClass = rangeClass.includes('temp1') ? 'temp1-val' : 'temp2-val';
+      updateTempDisplay(range, targetClass);
+    }
+
+    function setCurrentTime(btn, inputClass) {
+      const row = btn.closest('.modal-food-row');
+      const input = row.querySelector('.' + inputClass);
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const mins = String(now.getMinutes()).padStart(2, '0');
+      input.value = `${hours}:${mins}`;
+    }
+
+    function setFixText(btn, text) {
+      const row = btn.closest('.modal-food-row');
+      const input = row.querySelector('.food-fix-input');
+      input.value = text;
+    }
+
+    function handleCatalogAutocomplete(input) {
+      const val = input.value.trim().toLowerCase();
+      const dropdown = input.nextElementSibling;
+
+      if (!val) {
+        dropdown.classList.add('hidden');
+        return;
+      }
+
+      const matches = state.catalog.filter(item => item.toLowerCase().includes(val));
+
+      if (matches.length === 0) {
+        dropdown.classList.add('hidden');
+        return;
+      }
+
+      dropdown.innerHTML = '';
+      matches.forEach(match => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'p-2 text-xs text-slate-200 hover:bg-emerald-600 hover:text-white cursor-pointer transition';
+        itemDiv.innerText = match;
+        itemDiv.onclick = () => {
+          input.value = match;
+          dropdown.classList.add('hidden');
+        };
+        dropdown.appendChild(itemDiv);
+      });
+
+      dropdown.classList.remove('hidden');
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('food-name-input')) {
+        document.querySelectorAll('.autocomplete-dropdown').forEach(el => el.classList.add('hidden'));
+      }
+    });
+
+    function copyYesterdayFoods() {
+      if (!activeModalDayKey) return;
+
+      const parts = activeModalDayKey.split('-');
+      const currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
+      currentDate.setDate(currentDate.getDate() - 1);
+
+      const prevDayKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDate()}`;
+      const prevData = state.data[prevDayKey];
+
+      if (!prevData || !prevData.foods || prevData.foods.length === 0) {
+        alert("Ze včerejšího dne nebyly nalezeny žádné záznamy.");
+        return;
+      }
+
+      const foodsList = document.getElementById('modalFoodsList');
+      foodsList.innerHTML = '';
+
+      prevData.foods.forEach((food, idx) => {
+        const copiedFood = {
+          ...food,
+          time1: food.time1,
+          time2: food.time2
+        };
+        addModalFoodRowUI(copiedFood, idx + 1);
+      });
+    }
+
     function executeFinalSave() {
       if (!pendingSaveData) return;
 
